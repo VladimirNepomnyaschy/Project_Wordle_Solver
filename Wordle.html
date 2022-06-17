@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- saved from url=(0035)http://manoavr.ddns.net/wordle.html -->
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -239,7 +238,8 @@
         const wordsWithoutBad_letters = words.filter(
           (elem) => !wordsWithBad_letters.includes(elem)
         );
-        console.log(wordsWithoutBad_letters);
+
+        // console.log(wordsWithoutBad_letters);
 
         function hasValidLetters(word, valid_letters) {
           for (let i = 0; i < valid_letters.length; i++) {
@@ -258,50 +258,28 @@
             rightWords_NotPositioned.push(wordsWithoutBad_letters[i]);
           }
         }
-        console.log(rightWords_NotPositioned);
+
+        // console.log(rightWords_NotPositioned);
 
         function checkPositioned(word, positions) {
-          if (positions.length == 0) {
-            return true;
-          }
-
-          for (let i = 0; i < positions.length; i++) {
-            if (
-              word[i] == null &&
-              word[i] == positions[i] &&
-              word[i] == undefined
-            ) {
+          for (let i = 0; i < Math.min(word.length, positions.length); i++) {
+            if (positions[i] && positions[i] !== word[i]) {
+              return false;
             }
-            return true;
           }
-          return false;
+          return true;
         }
 
-        console.log(checkPositioned("qwerty", [null, null, "e"]) === true);
-        console.log(checkPositioned("qwerty", [null, null, "s"]) === false);
-        console.log(checkPositioned("qwerty", []) === true);
-        console.log(checkPositioned("", [null, null, "s"]) === false);
-        console.log(checkPositioned("ab", [null, null]) === true);
-        console.log(checkPositioned("qwerty", [null, null, ""]) === false);
-        console.log(checkPositioned("qwerty", ["q", "w", "e"]) === true);
-        console.log(
-          checkPositioned("qwerty", ["q", "w", "e", null, null, null]) === true
-        );
-
-        // Подсказка от Славы!
-
-        // function checkPositioned(word, positions) {
-        //   const min_len = Math.min(word.length, positions.length);
-        //   for (let i = 0; i < min_len; i++) {
-        //     const letter = positions[i]
-        //     if (letter && letter !== word[i]) {
-        //       return false;
-        //     }
-        //   }
-        //   return true;
-        // }
-
-        //  !!! Заготовка для вызова функции!
+        // console.log(checkPositioned("qwerty", [null, null, "e"]) === true);
+        // console.log(checkPositioned("qwerty", [null, null, "s"]) === false); // непонятно!
+        // console.log(checkPositioned("qwerty", []) === true);
+        // console.log(checkPositioned("", [null, null, "s"]) === false);
+        // console.log(checkPositioned("ab", [null, null]) === true);
+        // console.log(checkPositioned("qwerty", [null, null, ""]) === false);
+        // console.log(checkPositioned("qwerty", ["q", "w", "e"]) === true);
+        // console.log(
+        //   checkPositioned("qwerty", ["q", "w", "e", null, null, null]) === true
+        // );
 
         let rightWords_Positioned = [];
         for (let i = 0; i < rightWords_NotPositioned.length; i++) {
@@ -311,43 +289,45 @@
             rightWords_Positioned.push(rightWords_NotPositioned[i]);
           }
         }
-        console.log(rightWords_Positioned);
+
+        // console.log(rightWords_Positioned);
 
         // console.log(dictionary);
         // console.log(letters_count);
         // console.log(valid_letters);
-        console.log(positioned_letters);
+        // console.log(positioned_letters);
         // console.log(bad_letters);
 
         return rightWords_Positioned;
       }
 
-      solve_wordle_problem(
-        [
-          "око",
-          "кот",
-          "детство",
-          "проза",
-          "гроза",
-          "ода",
-          "зло",
-          "вздох",
-          "право",
-          "лево",
-          "указ",
-          "имаго",
-          "особь",
-          "слово",
-          "велик",
-          "скалы",
-          "ива",
-          "десять",
-        ],
-        5,
-        ["р", "а"],
-        [null, null, null, "в"],
-        ["х", "и", "ь"]
-      );
+      // Пробный вызов функции для проверки работоспособности
+      // solve_wordle_problem(
+      //   [
+      //     "око",
+      //     "кот",
+      //     "детство",
+      //     "проза",
+      //     "гроза",
+      //     "ода",
+      //     "зло",
+      //     "вздох",
+      //     "право",
+      //     "лево",
+      //     "указ",
+      //     "имаго",
+      //     "особь",
+      //     "слово",
+      //     "велик",
+      //     "скалы",
+      //     "ива",
+      //     "десять",
+      //   ],
+      //   5,
+      //   ["р", "а"],
+      //   [null, null, "е"],
+      //   ["х", "и", "ь"]
+      // );
 
       update_fixed_letters();
     </script>

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<!-- saved from url=(0035)http://manoavr.ddns.net/wordle.html -->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wordle</title>
+  </head>
+  <body>
+    <div style="display: flex; flex-direction: column; align-items: center">
+      <h3>Wordle solver</h3>
+      <div style="display: grid; grid-template-columns: auto auto; gap: 4px">
+        <label for="letters_count">Game size:</label>
+        <input
+          type="number"
+          id="letters_count"
+          value="5"
+          min="2"
+          max="20"
+          onchange="update_fixed_letters()"
+        />
+        <label for="valid_letters">Known letters:</label>
+        <input type="text" id="valid_letters" />
+        <label for="fixed_letters">Positioned letters:</label>
+        <div id="fixed_letters">
+          <input
+            type="text"
+            id="fixed_letter_0"
+            style="
+              max-width: 1em;
+              min-height: 1em;
+              font-size: 2em;
+              text-align: center;
+            "
+          /><input
+            type="text"
+            id="fixed_letter_1"
+            style="
+              max-width: 1em;
+              min-height: 1em;
+              font-size: 2em;
+              text-align: center;
+            "
+          /><input
+            type="text"
+            id="fixed_letter_2"
+            style="
+              max-width: 1em;
+              min-height: 1em;
+              font-size: 2em;
+              text-align: center;
+            "
+          /><input
+            type="text"
+            id="fixed_letter_3"
+            style="
+              max-width: 1em;
+              min-height: 1em;
+              font-size: 2em;
+              text-align: center;
+            "
+          /><input
+            type="text"
+            id="fixed_letter_4"
+            style="
+              max-width: 1em;
+              min-height: 1em;
+              font-size: 2em;
+              text-align: center;
+            "
+          />
+        </div>
+        <label for="bad_letters">Bad letters:</label>
+        <input type="text" id="bad_letters" />
+        <label for="dictionary">Dictionary:</label>
+        <input type="file" id="dictionary" />
+        <button onclick="on_show_solutions()">Show solutions</button>
+      </div>
+      <div id="solution"></div>
+    </div>
+
+    <script>
+      const FIXED_LETTER_PREFIX = "fixed_letter_";
+
+      function get_game_size() {
+        return Number(document.getElementById("letters_count").value);
+      }
+
+      function get_letters_from_elem(elem) {
+        return Array.from(new Set(elem.value.split("")));
+      }
+
+      function get_valid_letters() {
+        return get_letters_from_elem(document.getElementById("valid_letters"));
+      }
+
+      function get_bad_letters() {
+        return get_letters_from_elem(document.getElementById("bad_letters"));
+      }
+
+      function get_positioned_letters() {
+        const game_size = get_game_size();
+        let result = [];
+        for (let i = 0; i < game_size; ++i) {
+          const input = document.getElementById(FIXED_LETTER_PREFIX + i);
+          result.push(input && input.value.length > 0 ? input.value : null);
+        }
+        return result;
+      }
+
+      function focus_positioned_letter_by_id(id) {
+        const elem = document.getElementById(FIXED_LETTER_PREFIX + id);
+        if (elem) {
+          elem.focus();
+        }
+      }
+
+      function create_single_letter_input(input_id) {
+        const elem = document.createElement("input");
+        elem.type = "text";
+        elem.id = FIXED_LETTER_PREFIX + input_id;
+        elem.style.maxWidth = "1em";
+        elem.style.minHeight = "1em";
+        elem.style.fontSize = "2em";
+        elem.style.textAlign = "center";
+        elem.onkeydown = (e) => {
+          if (e.key === "ArrowLeft" && input_id != 0) {
+            focus_positioned_letter_by_id(input_id - 1);
+          } else if (e.key === "ArrowRight") {
+            focus_positioned_letter_by_id(input_id + 1);
+          }
+        };
+        elem.oninput = () => {
+          elem.value = elem.value[elem.value.length - 1];
+          focus_positioned_letter_by_id(input_id + 1);
+        };
+        return elem;
+      }
+
+      function update_fixed_letters() {
+        const positioned_letters = get_positioned_letters();
+        const fixed_letters = document.getElementById("fixed_letters");
+        fixed_letters.innerHTML = "";
+
+        const game_size = get_game_size();
+        for (let i = 0; i < game_size; ++i) {
+          const input = create_single_letter_input(i);
+          if (i < positioned_letters.length && positioned_letters[i]) {
+            input.value = positioned_letters[i];
+          }
+          fixed_letters.appendChild(input);
+        }
+      }
+
+      function handle_file(file, handle_fn) {
+        const reader = new FileReader();
+        reader.onload = function () {
+          handle_fn(this.result);
+        };
+        reader.readAsText(file);
+      }
+
+      function on_show_solutions() {
+        const dictionary_elem = document.getElementById("dictionary");
+        const file = dictionary_elem.files[0];
+        if (!file) {
+          alert("Select file and try again");
+          return;
+        }
+
+        const letters_count = get_game_size();
+        const valid_letters = get_valid_letters();
+        const positioned_letters = get_positioned_letters();
+        const bad_letters = get_bad_letters();
+
+        handle_file(file, (text) => {
+          const dictionary_words = text.split("\n").map((w) => w.toLowerCase());
+          const solution = solve_wordle_problem(
+            dictionary_words,
+            letters_count,
+            valid_letters,
+            positioned_letters,
+            bad_letters
+          );
+
+          const solution_elem = document.getElementById("solution");
+          solution_elem.innerHTML = "";
+          solution.map((word) => {
+            solution_elem.innerHTML += word + "<br>";
+          });
+        });
+      }
+
+      /**
+       * @brief Get solution for wordle problem
+       *
+       * @param dictionary Big dictionary loaded from user. Array of words
+       * @param letters_count Numerical count of letters in words
+       * @param valid_letters User known letters. Array of letters
+       * @param positioned_letters Positions of letters. Array of letters with possible null values
+       * @param bad_letters User known bad letters. Array of letters
+       *
+       * @return Array of words which contains valid letters. Positioned letters must be in the same places. Words should not have bad letters.
+       */
+
+      function solve_wordle_problem(
+        dictionary,
+        letters_count,
+        valid_letters,
+        positioned_letters,
+        bad_letters
+      ) {
+        let words = [];
+        for (let i = 0; i < dictionary.length; i++) {
+          if (dictionary[i].length === letters_count) {
+            words.push(dictionary[i]);
+          }
+        }
+        // console.log(words);
+
+        function hasInvalidLetters(word, bad_letters) {
+          for (let i = 0; i < bad_letters.length; i++) {
+            if (word.indexOf(bad_letters[i]) !== -1) {
+              return true;
+            }
+          }
+          return false;
+        }
+
+        let wordsWithBad_letters = [];
+        for (let i = 0; i < words.length; i++) {
+          if (hasInvalidLetters(words[i], bad_letters)) {
+            wordsWithBad_letters.push(words[i]);
+          }
+        }
+        // console.log(wordsWithBad_letters);
+
+        const wordsWithoutBad_letters = words.filter(
+          (elem) => !wordsWithBad_letters.includes(elem)
+        );
+        console.log(wordsWithoutBad_letters);
+
+        function hasValidLetters(word, valid_letters) {
+          for (let i = 0; i < valid_letters.length; i++) {
+            if (!word.includes(valid_letters[i])) {
+              return false;
+            }
+          }
+          return true;
+        }
+
+        // console.log(hasValidLetters("проза", ["а", "г"]));
+
+        let rightWords_NotPositioned = [];
+        for (let i = 0; i < wordsWithoutBad_letters.length; i++) {
+          if (hasValidLetters(wordsWithoutBad_letters[i], valid_letters)) {
+            rightWords_NotPositioned.push(wordsWithoutBad_letters[i]);
+          }
+        }
+        console.log(rightWords_NotPositioned);
+
+        function checkPositioned(word, positions) {
+          if (positions.length == 0) {
+            return true;
+          }
+
+          for (let i = 0; i < positions.length; i++) {
+            if (
+              word[i] == null &&
+              word[i] == positions[i] &&
+              word[i] == undefined
+            ) {
+            }
+            return true;
+          }
+          return false;
+        }
+
+        console.log(checkPositioned("qwerty", [null, null, "e"]) === true);
+        console.log(checkPositioned("qwerty", [null, null, "s"]) === false);
+        console.log(checkPositioned("qwerty", []) === true);
+        console.log(checkPositioned("", [null, null, "s"]) === false);
+        console.log(checkPositioned("ab", [null, null]) === true);
+        console.log(checkPositioned("qwerty", [null, null, ""]) === false);
+        console.log(checkPositioned("qwerty", ["q", "w", "e"]) === true);
+        console.log(
+          checkPositioned("qwerty", ["q", "w", "e", null, null, null]) === true
+        );
+
+        // Подсказка от Славы!
+
+        // function checkPositioned(word, positions) {
+        //   const min_len = Math.min(word.length, positions.length);
+        //   for (let i = 0; i < min_len; i++) {
+        //     const letter = positions[i]
+        //     if (letter && letter !== word[i]) {
+        //       return false;
+        //     }
+        //   }
+        //   return true;
+        // }
+
+        //  !!! Заготовка для вызова функции!
+
+        let rightWords_Positioned = [];
+        for (let i = 0; i < rightWords_NotPositioned.length; i++) {
+          if (
+            checkPositioned(rightWords_NotPositioned[i], positioned_letters)
+          ) {
+            rightWords_Positioned.push(rightWords_NotPositioned[i]);
+          }
+        }
+        console.log(rightWords_Positioned);
+
+        // console.log(dictionary);
+        // console.log(letters_count);
+        // console.log(valid_letters);
+        console.log(positioned_letters);
+        // console.log(bad_letters);
+
+        return rightWords_Positioned;
+      }
+
+      solve_wordle_problem(
+        [
+          "око",
+          "кот",
+          "детство",
+          "проза",
+          "гроза",
+          "ода",
+          "зло",
+          "вздох",
+          "право",
+          "лево",
+          "указ",
+          "имаго",
+          "особь",
+          "слово",
+          "велик",
+          "скалы",
+          "ива",
+          "десять",
+        ],
+        5,
+        ["р", "а"],
+        [null, null, null, "в"],
+        ["х", "и", "ь"]
+      );
+
+      update_fixed_letters();
+    </script>
+  </body>
+</html>
